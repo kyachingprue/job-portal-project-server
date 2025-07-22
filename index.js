@@ -16,17 +16,6 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.nhw49.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
-
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
-const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  },
-});
-
 const verifyToken = (req, res, next) => {
   const token = req?.cookies?.token;
   if (!token) {
@@ -40,6 +29,17 @@ const verifyToken = (req, res, next) => {
     next();
   });
 };
+
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.nhw49.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+
+// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+const client = new MongoClient(uri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  },
+});
 
 async function run() {
   try {
@@ -59,13 +59,24 @@ async function run() {
     //Auth JWT Token APIs
     app.post('/jwt', async (req, res) => {
       const user = req.body;
-      const token = jwt.sign(user, process.env.JWT_TOKEN, { expiresIn: '5h' });
+      const token = jwt.sign(user, process.env.JWT_TOKEN, { expiresIn: '10d' });
       res
         .cookie('token', token, {
           httpOnly: true,
           secure: false,
+          sameSite: 'Lax',
         })
         .send({ success: true });
+    });
+
+    // remove jwt token during logout time
+    app.post('/logout', (req, res) => {
+      res.clearCookie('token', {
+        httpOnly: true,
+        secure: false,
+        sameSite: 'Lax',
+      });
+      res.send({ message: 'Logout successful' });
     });
 
     // Jobs API
